@@ -9,10 +9,10 @@ class chip8:
         global gfx = [0 for x in range(64*32)]  # pixel screen
         global delay_timer = 0  # 60hz timer
         global sound_timer = 0  # 60hz timer
-        global stack = [x for x in range(16)]
-        global sp = 0
-        global key = [x for x in range(16)]
-        global fontset = []
+        global stack = [x for x in range(16)] #stack for emulating instruction stack
+        global sp = 0 #stack pointer
+        global key = [x for x in range(16)] #keypad
+        global fontset = [] #fonts and sprites
 
         for i in range(80):    # loading fontset at location 80. ###come back
             memory[i] = fontset[i]
@@ -21,9 +21,26 @@ class chip8:
             for i in range(len(rom)):
                 memory[i + 512] = rom[i]
 
-    def emulate_cycle(self):
-        opcode = (memory[pc] * 10000000) + memory[pc + 1]
+    def clear_display(self):
+        gfx = [0 for x in range(64*32)]
 
+
+    def emulate_cycle(self):
+        opcode = hex(int(((memory[pc] * 10000000) + memory[pc + 1]), 2))
+        
+        if opcode == '00E0': #clear screen
+            clear_display()
+            pc += 2
+            draw_flag = True
+            continue #or break?
+        elif opcode == '00EE': #return from subroutine
+            pc = stack[sp]
+            pc += 2
+            continue #or break?
+        elif opcode == (opcode[2] == '1'): #jump to address NNN (opcode = 1NNN)
+            pc = opcode[3:6]
+            pc += 2
+            continue #or break?
 
 class main:
     init_graphics()
