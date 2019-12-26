@@ -1,26 +1,26 @@
 def emulate_cycle():
 
-    memory = [1110, 0000, 1110, 1110]
+    memory = [0x00, 0xE0, 0x10, 0x02, 0x00, 0xEE]
     pc = 0
     draw_flag = False
     stack = [0, 0, 0]
     sp = 0
     rom = True
+    I = 0
 
     while rom != False:
-        opcode = (
-            hex(int(str((memory[pc] * 10000) + memory[pc + 1]), 2))).upper()
-        print(opcode[2::])
-        if opcode[2::] == 'E0':  # clear screen
+        opcode = ((memory[pc] << 8) | memory[pc + 1])
+        print(opcode & 0xF000)
+        if opcode == 0x00E0:  # clear screen
             # clear_display()
             pc += 2
             draw_flag = True
             print('clear screen')
-        elif opcode[2::] == 'EE':  # return from subroutine
+        elif opcode == 0x00EE:  # return from subroutine
             pc = stack[sp]
             pc += 2
-        elif opcode == (opcode[2] == '1'):  # jump to address NNN (opcode = 1NNN)
-            pc = opcode[3:6]
+        elif (opcode & 0xF000) == 0x1000:  # jump to address NNN (opcode = 1NNN)
+            I = opcode & 0x0FFF
             pc += 2
         else:
             print('failure')

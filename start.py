@@ -5,42 +5,52 @@ class chip8:
         global memory = [0 for x in range(4096)]  # initializing memory array
         global V = [x for x in range(16)]  # initializing cpu registers
         global I = 0  # index register
-        global pc = '0x200'  # program counter always starts here
+        global pc = 0x200  # program counter always starts here
         global gfx = [0 for x in range(64*32)]  # pixel screen
         global delay_timer = 0  # 60hz timer
         global sound_timer = 0  # 60hz timer
-        global stack = [x for x in range(16)] #stack for emulating instruction stack
-        global sp = 0 #stack pointer
-        global key = [x for x in range(16)] #keypad
-        global fontset = [] #fonts and sprites
+        # stack for emulating instruction stack
+        global stack = [x for x in range(16)]
+        global sp = 0  # stack pointer
+        global key = [x for x in range(16)]  # keypad
+        global fontset = []  # fonts and sprites
 
         for i in range(80):    # loading fontset at location 80. ###come back
             memory[i] = fontset[i]
 
-        with open('rom.rom') as rom:
-            for i in range(len(rom)):
-                memory[i + 512] = rom[i]
+        with open('rom.ch8', 'rb') as rom:
+            rom_load = (byte for byte in rom.read(4096-512))
+            for i, byte in enumerate(rom_load, pc):
+                memory[i] = byte
 
     def clear_display(self):
         gfx = [0 for x in range(64*32)]
 
-
-    def emulate_cycle(self):
-        opcode = hex(int(((memory[pc] * 10000000) + memory[pc + 1]), 2))
-        
-        if opcode == '00E0': #clear screen
+    def emulate_cycle():
+        opcode = ((memory[pc] << 8) | memory[pc + 1])
+        print(opcode & 0xF000)
+        if opcode == 0x00E0:  # clear screen
             clear_display()
             pc += 2
             draw_flag = True
-            continue #or break?
-        elif opcode == '00EE': #return from subroutine
+            print('clear screen')
+        elif opcode == 0x00EE:  # return from subroutine
             pc = stack[sp]
             pc += 2
-            continue #or break?
-        elif opcode == (opcode[2] == '1'): #jump to address NNN (opcode = 1NNN)
-            pc = opcode[3:6]
+        elif (opcode & 0xF000) == 0x1000:  # jump to address NNN (opcode = 1NNN)
+            I = opcode & 0x0FFF
             pc += 2
-            continue #or break?
+        else:
+            print('failure')
+
+        if delay_timer > 0:
+            delay_timer -= delay_timer
+        if sound_timer > 0:
+            if sound_timer == 1:
+                print('beep')
+            else:
+                sound_timer -= sound_timer
+
 
 class main:
     init_graphics()
