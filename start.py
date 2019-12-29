@@ -1,6 +1,8 @@
 
 
 def initialize():
+    global emulate
+    emulate = True
     global opcode
     opcode = 0
     global memory
@@ -45,20 +47,32 @@ def initialize():
 
     for i in range(80):    # loading fontset at location 80. ###come back
         memory[i] = fontset[i]
+    print('loaded fontset')
 
     with open('rom.ch8', 'rb') as rom:
         rom_load = (byte for byte in rom.read(4096-512))
         for i, byte in enumerate(rom_load, pc):
             memory[i] = byte
+        print(f'loaded rom to memory')
 
 
 def clear_display():
+    global gfx
     gfx = [0 for x in range(64*32)]
 
 
 def emulate_cycle():
+    global pc
+    global memory
+    global draw_flag
+    global V
+    global I
+    global emulate
+
+    draw_flag = False
+
     opcode = ((memory[pc] << 8) | memory[pc + 1])
-    print(opcode & 0xF000)
+    print(f'current opcode is {opcode}')
     if opcode == 0x00E0:  # clear screen
         clear_display()
         pc += 2
@@ -67,9 +81,11 @@ def emulate_cycle():
     elif opcode == 0x00EE:  # return from subroutine
         pc = stack[sp]
         pc += 2
+        print('return from subroutine')
     elif (opcode & 0xF000) == 0x1000:  # jump to address NNN (opcode = 1NNN)
         I = opcode & 0x0FFF
         pc += 2
+        print(f'jump to address {I}')
     elif (opcode & 0xF00F) == 0x8004:   # add the value of VY to VX (opcode = 0x8XY4)
         # carry info
         if (V[(opcode & 0x00F0) >> 4]) > (0xFF - V[(opcode & 0x0F00) >> 8]):
@@ -78,6 +94,7 @@ def emulate_cycle():
             V[0xF] = 0
         V[(opcode & 0x0F00) >> 8] += V[(opcode & 0x00F0) >> 4]
         pc += 2
+        print(f'add {V}{opcode & 0x0F00} to {V}{opcode & 0x00F0}')
     # elif (opcode & 0x00FF) == 0x0033:
     #     memory[I] = bin(V[(opcode & 0x0F00)])
     #     memory[I + 1] = bin(V[(opcode & 0x0F00)])
@@ -104,23 +121,27 @@ def emulate_cycle():
                 xline += 1
         draw_flag = True
         pc += 2
+        print('draw sprites')
 
     elif (opcode & 0xF000) == 0xE000:
         if (opcode & 0x00FF) == 0x009E and key[V[(opcode & 0x0F00) >> 8]] != 0:
             pc += 4
         else:
             pc += 2
+        print('key pressed')
 
     else:
         print('failure')
+        # emulate = False
+        pc += 2
 
-    if delay_timer > 0:
-        delay_timer -= delay_timer
-    if sound_timer > 0:
-        if sound_timer == 1:
-            print('beep')
-        else:
-            sound_timer -= sound_timer
+    # if delay_timer > 0:
+    #     delay_timer -= delay_timer
+    # if sound_timer > 0:
+    #     if sound_timer == 1:
+    #         print('beep')
+    #     else:
+    #         sound_timer -= sound_timer
 
 
 def draw_graphics():
@@ -128,10 +149,15 @@ def draw_graphics():
 
 
 def main():
+    global draw_flag
+    draw_flag = False
+    global emulate
+    emulate = False
+
     clear_display()
     initialize()
 
-    while True == True:
+    while emulate == True:
         emulate_cycle()
         if draw_flag:
             draw_graphics()
